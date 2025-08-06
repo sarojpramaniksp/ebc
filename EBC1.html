@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ecolife Box Cricket Registration</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+    <div class="container mt-5 mb-5">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title text-center mb-3">
+            Ecolife Box Cricket Registration
+          </h2>
+          <p class="text-center text-muted" id="matchInfo">
+            Match Date: <span id="matchDate">--/--/----</span>
+          </p>
+
+          <!-- Countdown Timers -->
+          <div id="countdownSection" class="text-center mb-3">
+            <p class="text-primary">
+              Registration opens in: <span id="countdownTimer">--</span>
+            </p>
+            <p class="text-danger" id="closeTimer" style="display: none">
+              Registration closes in: <span id="countdownCloseTimer">--</span>
+            </p>
+          </div>
+
+          <!-- Counters -->
+          <div id="counters" class="row text-center mb-4 d-none">
+            <div class="col-6">
+              <div class="bg-success bg-opacity-10 rounded p-2">
+                <p class="text-success fw-semibold mb-1">Registered</p>
+                <h5 id="registeredCount">0 / 14</h5>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="bg-warning bg-opacity-10 rounded p-2">
+                <p class="text-warning fw-semibold mb-1">Waiting List</p>
+                <h5 id="waitingCount">0 / 5</h5>
+              </div>
+            </div>
+          </div>
+
+          <!-- Registration Form -->
+          <form
+            id="registrationForm"
+            class="needs-validation d-none"
+            novalidate
+          >
+            <div class="mb-3">
+              <label for="name" class="form-label">Your Name</label>
+              <input type="text" class="form-control" id="name" required />
+              <div class="invalid-feedback">Name is required.</div>
+            </div>
+            <div class="mb-3">
+              <label for="phone" class="form-label">Mobile Number</label>
+              <input
+                type="tel"
+                class="form-control"
+                id="phone"
+                pattern="[0-9]{10}"
+                required
+              />
+              <div class="invalid-feedback">
+                Valid 10-digit mobile number is required.
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="nomination" class="form-label"
+                >Nomination for Post</label
+              >
+              <select class="form-select" id="nomination" required>
+                <option value="">Select Post</option>
+                <option value="Captain">Captain</option>
+                <option value="Vice-Captain">Vice-Captain</option>
+                <option value="Player">Player</option>
+                <option value="Sponsor">Sponsor</option>
+              </select>
+              <div class="invalid-feedback">Please select a post.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">
+              Register Now
+            </button>
+          </form>
+
+          <!-- Verification Step -->
+          <div id="verificationSection" class="mt-3 d-none">
+            <label for="verificationCode" class="form-label"
+              >Enter Verification Code</label
+            >
+            <input
+              type="text"
+              id="verificationCode"
+              class="form-control mb-2"
+              placeholder="Enter code sent to you"
+            />
+            <button class="btn btn-success w-100" id="verifyBtn">
+              Verify & Confirm Registration
+            </button>
+            <div class="text-danger mt-2 d-none" id="verificationError">
+              Invalid verification code. Please try again.
+            </div>
+          </div>
+
+          <!-- Alerts -->
+          <div id="statusMessage" class="alert alert-success mt-3 d-none"></div>
+          <div id="errorMessage" class="alert alert-danger mt-3 d-none"></div>
+
+          <!-- Registered List -->
+          <!-- Registered and Waiting Lists Side-by-Side -->
+          <!-- Registered and Waiting Lists Side-by-Side -->
+          <div class="row mt-4" id="listsContainer" style="display: none">
+            <div
+              class="col-md-6"
+              id="registeredListWrapper"
+              style="display: none"
+            >
+              <div id="registeredListSection">
+                <h5>Registered Players</h5>
+                <ul class="list-group" id="registeredList"></ul>
+              </div>
+            </div>
+            <div class="col-md-6" id="waitingListWrapper" style="display: none">
+              <div id="waitingListSection">
+                <h5>Waiting List Players</h5>
+                <ul class="list-group" id="waitingList"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Configuration
+      const matchDateStr = "2025-08-09T17:00:00"
+      const registrationOpensStr = "2025-08-05T22:10:00"
+      const registrationClosesStr = new Date(
+        new Date(matchDateStr).getTime() - 2 * 60 * 60 * 1000
+      ).toISOString()
+      const maxRegistrations = 3
+      const maxWaiting = 2
+      const expectedVerificationCode = "1234"
+
+      // DOM Elements
+      const matchDate = document.getElementById("matchDate")
+      const countdownTimer = document.getElementById("countdownTimer")
+      const countdownCloseTimer = document.getElementById("countdownCloseTimer")
+      const countdownSection = document.getElementById("countdownSection")
+      const closeTimer = document.getElementById("closeTimer")
+      const registrationForm = document.getElementById("registrationForm")
+      const statusMessage = document.getElementById("statusMessage")
+      const errorMessage = document.getElementById("errorMessage")
+      const registeredList = document.getElementById("registeredList")
+      const waitingList = document.getElementById("waitingList")
+      const registeredCount = document.getElementById("registeredCount")
+      const waitingCount = document.getElementById("waitingCount")
+      const counters = document.getElementById("counters")
+
+      const listsContainer = document.getElementById("listsContainer")
+      const registeredListWrapper = document.getElementById(
+        "registeredListWrapper"
+      )
+      const waitingListWrapper = document.getElementById("waitingListWrapper")
+
+      const verificationSection = document.getElementById("verificationSection")
+      const verificationCodeInput = document.getElementById("verificationCode")
+      const verifyBtn = document.getElementById("verifyBtn")
+      const verificationError = document.getElementById("verificationError")
+
+      // Data
+      let registeredUsers = [
+        { name: "Rahul", phone: "9000000001", role: "Player" }
+      ]
+      let waitingUsers = []
+      let pendingUser = null
+
+      matchDate.textContent = new Date(matchDateStr).toLocaleString()
+
+      function updateUI() {
+        registeredList.innerHTML = ""
+        waitingList.innerHTML = ""
+
+        if (registeredUsers.length > 0) {
+          registeredListWrapper.style.display = "block"
+          registeredUsers.forEach((user) => {
+            const li = document.createElement("li")
+            li.className = "list-group-item"
+            li.textContent = `${user.name} - ${user.role} (${user.phone})`
+            registeredList.appendChild(li)
+          })
+        } else {
+          registeredListWrapper.style.display = "none"
+        }
+
+        if (waitingUsers.length > 0) {
+          waitingListWrapper.style.display = "block"
+          waitingUsers.forEach((user) => {
+            const li = document.createElement("li")
+            li.className = "list-group-item"
+            li.textContent = `${user.name} - ${user.role} (${user.phone})`
+            waitingList.appendChild(li)
+          })
+        } else {
+          waitingListWrapper.style.display = "none"
+        }
+
+        if (registeredUsers.length > 0 || waitingUsers.length > 0) {
+          listsContainer.style.display = "flex"
+        } else {
+          listsContainer.style.display = "none"
+        }
+
+        registeredCount.textContent = `${registeredUsers.length} / ${maxRegistrations}`
+        waitingCount.textContent = `${waitingUsers.length} / ${maxWaiting}`
+      }
+
+      setInterval(() => {
+        const now = new Date()
+        const regStart = new Date(registrationOpensStr)
+        const regClose = new Date(registrationClosesStr)
+
+        if (now < regStart) {
+          const diff = regStart - now
+          countdownTimer.textContent = formatDuration(diff)
+          countdownSection.style.display = "block"
+        } else if (now >= regStart && now <= regClose) {
+          countdownSection.style.display = "block"
+          closeTimer.style.display = "block"
+          countdownTimer.textContent = "Registration is OPEN!"
+          countdownCloseTimer.textContent = formatDuration(regClose - now)
+          registrationForm.classList.remove("d-none")
+          counters.classList.remove("d-none")
+        } else {
+          countdownTimer.textContent = "Registration CLOSED."
+          registrationForm.classList.add("d-none")
+        }
+      }, 1000)
+
+      function formatDuration(ms) {
+        const totalSecs = Math.floor(ms / 1000)
+        const h = Math.floor(totalSecs / 3600)
+        const m = Math.floor((totalSecs % 3600) / 60)
+        const s = totalSecs % 60
+        return `${h}h ${m}m ${s}s`
+      }
+
+      // Step 1: Form Submit
+      registrationForm.addEventListener("submit", function (e) {
+        e.preventDefault()
+        const form = e.target
+        if (!form.checkValidity()) {
+          form.classList.add("was-validated")
+          return
+        }
+
+        const name = document.getElementById("name").value.trim()
+        const phone = document.getElementById("phone").value.trim()
+        const role = document.getElementById("nomination").value
+
+        // Reset messages
+        statusMessage.classList.add("d-none")
+        errorMessage.classList.add("d-none")
+        verificationError.classList.add("d-none")
+
+        // Duplicate check
+        if (
+          registeredUsers.some((u) => u.phone === phone) ||
+          waitingUsers.some((u) => u.phone === phone)
+        ) {
+          errorMessage.textContent = "You have already registered."
+          errorMessage.classList.remove("d-none")
+          return
+        }
+
+        pendingUser = { name, phone, role }
+        verificationSection.classList.remove("d-none")
+        registrationForm.querySelector("button[type=submit]").disabled = true
+      })
+
+      // Step 2: Verify Button
+      verifyBtn.addEventListener("click", () => {
+        const code = verificationCodeInput.value.trim()
+
+        if (code === expectedVerificationCode && pendingUser) {
+          if (registeredUsers.length < maxRegistrations) {
+            registeredUsers.push(pendingUser)
+            statusMessage.textContent = "Registered successfully!"
+          } else if (waitingUsers.length < maxWaiting) {
+            waitingUsers.push(pendingUser)
+            statusMessage.textContent = "Added to waiting list."
+          } else {
+            errorMessage.textContent =
+              "All slots including waiting list are full!"
+            errorMessage.classList.remove("d-none")
+            return
+          }
+
+          // Clear everything
+          registrationForm.reset()
+          registrationForm.classList.remove("was-validated")
+          verificationSection.classList.add("d-none")
+          verificationCodeInput.value = ""
+          registrationForm.querySelector("button[type=submit]").disabled = false
+          pendingUser = null
+
+          statusMessage.classList.remove("d-none")
+          updateUI()
+        } else {
+          verificationError.classList.remove("d-none")
+        }
+      })
+
+      updateUI()
+    </script>
+  </body>
+</html>
